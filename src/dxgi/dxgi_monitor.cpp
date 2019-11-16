@@ -88,5 +88,22 @@ namespace dxvk {
         return 32;
     }
   }
-  
+
+  DXGI_FORMAT GetBppMonitorFormat(uint32_t bpp) {
+    switch (bpp) {
+      case 32:
+        return DXGI_FORMAT_R8G8B8A8_UNORM;
+      
+      case 64:
+        return DXGI_FORMAT_R16G16B16A16_FLOAT;
+      
+      default:
+        Logger::warn(str::format(
+          "GetBppMonitorFormat: Unknown bpp: ",
+          bpp));
+        return DXGI_FORMAT_R8G8B8A8_UNORM;
+    }
+  }
+
+
 }
