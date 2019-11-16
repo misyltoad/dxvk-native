@@ -21,8 +21,10 @@ namespace dxvk {
 
     m_extProviders.push_back(&DxvkPlatformExts::s_instance);
 
+#ifndef DXVK_NATIVE
     if (m_options.enableOpenVR)
       m_extProviders.push_back(&VrInstance::s_instance);
+#endif
 
     if (m_options.enableOpenXR)
       m_extProviders.push_back(&DxvkXrProvider::s_instance);
