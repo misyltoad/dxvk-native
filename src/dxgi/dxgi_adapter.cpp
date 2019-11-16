@@ -10,6 +10,7 @@
 #include "dxgi_options.h"
 #include "dxgi_output.h"
 
+#include "../wsi/wsi_monitor.h"
 #include "../util/util_luid.h"
 
 namespace dxvk {
@@ -142,19 +143,15 @@ namespace dxvk {
     
     if (ppOutput == nullptr)
       return E_INVALIDARG;
+
+    HMONITOR monitor = wsi::enumMonitors(Output);
     
-    MonitorEnumInfo info;
-    info.iMonitorId = Output;
-    info.oMonitor   = nullptr;
-    
-    ::EnumDisplayMonitors(
-      nullptr, nullptr, &MonitorEnumProc,
-      reinterpret_cast<LPARAM>(&info));
-    
-    if (info.oMonitor == nullptr)
+    if (!monitor) {
+      *ppOutput = nullptr;
       return DXGI_ERROR_NOT_FOUND;
-    
-    *ppOutput = ref(new DxgiOutput(m_factory, this, info.oMonitor));
+    }
+
+    *ppOutput = ref(new DxgiOutput(m_factory, this, monitor));
     return S_OK;
   }
   
