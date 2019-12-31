@@ -2,6 +2,9 @@
 
 #include "d3d9_format.h"
 
+#include "../wsi/wsi_window.h"
+#include "../wsi/wsi_monitor.h"
+
 namespace dxvk {
 
   uint32_t GetMonitorFormatBpp(D3D9Format Format) {

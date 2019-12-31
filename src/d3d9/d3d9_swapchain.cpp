@@ -9,7 +9,7 @@
 
 namespace dxvk {
 
-
+#ifndef DXVK_NATIVE
   struct D3D9WindowData {
     bool unicode;
     bool filter;
@@ -152,6 +152,7 @@ namespace dxvk {
       CallWindowProcW, CallWindowProcA, unicode,
         windowData.proc, window, message, wparam, lparam);
   }
+#endif
 
 
   static uint16_t MapGammaControlPoint(float x) {
@@ -165,6 +166,25 @@ namespace dxvk {
     float scale[2];
     float offset[2];
   };
+
+
+  static inline void ConvertDisplayMode(const D3DDISPLAYMODEEX& mode, wsi::WsiMode* wsiMode) {
+    wsiMode->width        = mode.Width;
+    wsiMode->height       = mode.Height;
+    wsiMode->refreshRate  = wsi::WsiRational{ mode.RefreshRate, 1 };
+    wsiMode->bitsPerPixel = GetMonitorFormatBpp(EnumerateFormat(mode.Format));
+    wsiMode->interlaced   = false;
+  }
+
+
+  static inline void ConvertDisplayMode(const wsi::WsiMode& devMode, D3DDISPLAYMODEEX* pMode) {
+      pMode->Size             = sizeof(D3DDISPLAYMODEEX);
+      pMode->Width            = devMode.width;
+      pMode->Height           = devMode.height;
+      pMode->RefreshRate      = devMode.refreshRate.numerator / devMode.refreshRate.denominator;
+      pMode->Format           = D3DFMT_X8R8G8B8;
+      pMode->ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+  }
 
 
   D3D9SwapChainEx::D3D9SwapChainEx(
@@ -201,9 +221,12 @@ namespace dxvk {
 
   D3D9SwapChainEx::~D3D9SwapChainEx() {
     DestroyBackBuffers();
+#ifndef DXVK_NATIVE
+    ResetWindowProc();
+#endif
 
-    ResetWindowProc(m_window);
-    RestoreDisplayMode(m_monitor);
+    if (!wsi::restoreDisplayMode(m_monitor))
+      Logger::warn("D3D9: LeaveFullscreenMode: Failed to restore display mode");
 
     m_device->waitForSubmission(&m_presentStatus);
     m_device->waitForIdle();
@@ -580,20 +603,14 @@ namespace dxvk {
       *pRotation = D3DDISPLAYROTATION_IDENTITY;
 
     if (pMode != nullptr) {
-      DEVMODEW devMode = DEVMODEW();
-      devMode.dmSize = sizeof(devMode);
+      wsi::WsiMode devMode = { };
 
-      if (!GetMonitorDisplayMode(GetDefaultMonitor(), ENUM_CURRENT_SETTINGS, &devMode)) {
+      if (!wsi::getCurrentDisplayMode(GetDefaultMonitor(), &devMode)) {
         Logger::err("D3D9SwapChainEx::GetDisplayModeEx: Failed to enum display settings");
         return D3DERR_INVALIDCALL;
       }
 
-      pMode->Size             = sizeof(D3DDISPLAYMODEEX);
-      pMode->Width            = devMode.dmPelsWidth;
-      pMode->Height           = devMode.dmPelsHeight;
-      pMode->RefreshRate      = devMode.dmDisplayFrequency;
-      pMode->Format           = D3DFMT_X8R8G8B8;
-      pMode->ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+      ConvertDisplayMode(devMode, pMode);
     }
 
     return D3D_OK;
@@ -617,36 +634,16 @@ namespace dxvk {
       if (changeFullscreen)
         this->LeaveFullscreenMode();
 
-      // Adjust window position and size
-      RECT newRect = { 0, 0, 0, 0 };
-      RECT oldRect = { 0, 0, 0, 0 };
-      
-      ::GetWindowRect(m_window, &oldRect);
-      ::SetRect(&newRect, 0, 0, pPresentParams->BackBufferWidth, pPresentParams->BackBufferHeight);
-      ::AdjustWindowRectEx(&newRect,
-        ::GetWindowLongW(m_window, GWL_STYLE), FALSE,
-        ::GetWindowLongW(m_window, GWL_EXSTYLE));
-      ::SetRect(&newRect, 0, 0, newRect.right - newRect.left, newRect.bottom - newRect.top);
-      ::OffsetRect(&newRect, oldRect.left, oldRect.top);    
-      ::MoveWindow(m_window, newRect.left, newRect.top,
-        newRect.right - newRect.left, newRect.bottom - newRect.top, TRUE);
+      wsi::resizeWindow(
+        m_window, &m_windowState,
+        pPresentParams->BackBufferWidth,
+        pPresentParams->BackBufferHeight);
     }
     else {
       if (changeFullscreen)
         this->EnterFullscreenMode(pPresentParams, pFullscreenDisplayMode);
-
-      D3D9WindowMessageFilter filter(m_window);
-
-      if (!changeFullscreen)
-        ChangeDisplayMode(pPresentParams, pFullscreenDisplayMode);
-
-      // Move the window so that it covers the entire output    
-      RECT rect;
-      GetMonitorRect(GetDefaultMonitor(), &rect);
-    
-      ::SetWindowPos(m_window, HWND_TOPMOST,
-        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-        SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+      else
+        ChangeDisplayMode(pPresentParams, pFullscreenDisplayMode, false);
     }
 
     m_presentParams = *pPresentParams;
@@ -1408,15 +1405,13 @@ namespace dxvk {
 
   HRESULT D3D9SwapChainEx::EnterFullscreenMode(
           D3DPRESENT_PARAMETERS* pPresentParams,
-    const D3DDISPLAYMODEEX*      pFullscreenDisplayMode) {    
-    // Find a display mode that matches what we need
-    ::GetWindowRect(m_window, &m_windowState.rect);
-      
-    if (FAILED(ChangeDisplayMode(pPresentParams, pFullscreenDisplayMode))) {
+    const D3DDISPLAYMODEEX*      pFullscreenDisplayMode) {
+    if (FAILED(ChangeDisplayMode(pPresentParams, pFullscreenDisplayMode, true))) {
       Logger::err("D3D9: EnterFullscreenMode: Failed to change display mode");
-      return D3DERR_INVALIDCALL;
+      return D3DERR_NOTAVAILABLE;
     }
 
+#ifndef DXVK_NATIVE
     // Testing shows we shouldn't hook WM_NCCALCSIZE but we shouldn't change
     // windows style either.
     //
@@ -1449,38 +1444,33 @@ namespace dxvk {
       SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOACTIVATE);
     
     m_monitor = GetDefaultMonitor();
+
+    if (!wsi::enterFullscreenMode(m_monitor, m_window, &m_windowState, true)) {
+        Logger::err("D3D9: EnterFullscreenMode: Failed to enter fullscreen mode");
+        return D3DERR_NOTAVAILABLE;
+    }
+
     return D3D_OK;
   }
   
   
-  HRESULT D3D9SwapChainEx::LeaveFullscreenMode() {
-    if (!IsWindow(m_window))
-      return D3DERR_INVALIDCALL;
-    
-    if (FAILED(RestoreDisplayMode(m_monitor)))
+  HRESULT D3D9SwapChainEx::LeaveFullscreenMode() {    
+    if (!wsi::restoreDisplayMode(m_monitor))
       Logger::warn("D3D9: LeaveFullscreenMode: Failed to restore display mode");
     
     m_monitor = nullptr;
 
+#ifndef DXVK_NATIVE
     ResetWindowProc(m_window);
+#endif
     
-    // Only restore the window style if the application hasn't
-    // changed them. This is in line with what native D3D9 does.
-    LONG curStyle   = ::GetWindowLongW(m_window, GWL_STYLE) & ~WS_VISIBLE;
-    LONG curExstyle = ::GetWindowLongW(m_window, GWL_EXSTYLE) & ~WS_EX_TOPMOST;
-    
-    if (curStyle == (m_windowState.style & ~(WS_VISIBLE | WS_OVERLAPPEDWINDOW))
-     && curExstyle == (m_windowState.exstyle & ~(WS_EX_TOPMOST | WS_EX_OVERLAPPEDWINDOW))) {
-      ::SetWindowLongW(m_window, GWL_STYLE,   m_windowState.style);
-      ::SetWindowLongW(m_window, GWL_EXSTYLE, m_windowState.exstyle);
+    if (!wsi::isWindow(m_window))
+      return D3D_OK;
+
+    if (!wsi::leaveFullscreenMode(m_window, &m_windowState)) {
+      Logger::err("D3D9: LeaveFullscreenMode: Failed to exit fullscreen mode");
+      return D3DERR_NOTAVAILABLE;
     }
-    
-    // Restore window position and apply the style
-    const RECT rect = m_windowState.rect;
-    
-    ::SetWindowPos(m_window, 0,
-      rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-      SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE);
     
     return D3D_OK;
   }
@@ -1488,7 +1478,8 @@ namespace dxvk {
   
   HRESULT D3D9SwapChainEx::ChangeDisplayMode(
           D3DPRESENT_PARAMETERS* pPresentParams,
-    const D3DDISPLAYMODEEX*      pFullscreenDisplayMode) {
+    const D3DDISPLAYMODEEX*      pFullscreenDisplayMode,
+          bool                   EnteringFullscreen) {
     D3DDISPLAYMODEEX mode;
 
     if (pFullscreenDisplayMode) {
@@ -1502,32 +1493,15 @@ namespace dxvk {
       mode.Size             = sizeof(D3DDISPLAYMODEEX);
     }
 
-    DEVMODEW devMode = { };
-    devMode.dmSize       = sizeof(devMode);
-    devMode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
-    devMode.dmPelsWidth  = mode.Width;
-    devMode.dmPelsHeight = mode.Height;
-    devMode.dmBitsPerPel = GetMonitorFormatBpp(EnumerateFormat(mode.Format));
-    
-    if (mode.RefreshRate != 0)  {
-      devMode.dmFields |= DM_DISPLAYFREQUENCY;
-      devMode.dmDisplayFrequency = mode.RefreshRate;
-    }
-    
-    return SetMonitorDisplayMode(GetDefaultMonitor(), &devMode)
-      ? D3D_OK
-      : D3DERR_NOTAVAILABLE;
+    wsi::WsiMode wsiMode = { };
+    ConvertDisplayMode(mode, &wsiMode);
+
+    if (!wsi::setWindowMode(GetDefaultMonitor(), m_window, &wsiMode, EnteringFullscreen))
+      return D3DERR_NOTAVAILABLE;
+
+    return D3D_OK;
   }
-  
-  
-  HRESULT D3D9SwapChainEx::RestoreDisplayMode(HMONITOR hMonitor) {
-    if (hMonitor == nullptr)
-      return D3DERR_INVALIDCALL;
-    
-    return RestoreMonitorDisplayMode(hMonitor)
-      ? D3D_OK
-      : D3DERR_NOTAVAILABLE;
-  }
+
 
   bool    D3D9SwapChainEx::UpdatePresentRegion(const RECT* pSourceRect, const RECT* pDestRect) {
     if (pSourceRect == nullptr) {
