@@ -217,6 +217,8 @@ constexpr HRESULT DXGI_ERROR_SDK_COMPONENT_MISSING         = 0x887A002D;
 #define __C89_NAMELESSUNIONNAME7
 #define __C89_NAMELESSUNIONNAME8
 #define __C89_NAMELESS
+#define DUMMYUNIONNAME
+#define DUMMYSTRUCTNAME
 
 #define DECLARE_INTERFACE(x)     struct x
 #define DECLARE_INTERFACE_(x, y) struct x : public y
