@@ -31,6 +31,8 @@ using UINT16  = uint16_t;
 using UINT32  = uint32_t;
 using UINT64  = uint64_t;
 using VOID    = void;
+using LPVOID  = void*;
+using LPCVOID = const void*;
 
 using SIZE_T  = size_t;
 
@@ -72,6 +74,7 @@ using HMONITOR = HANDLE;
 using HDC      = HANDLE;
 using HMODULE  = HANDLE;
 using HWND     = HANDLE;
+using COLORREF = DWORD;
 
 using LPSTR    = char*;
 using LPCSTR   = const char*;
@@ -86,6 +89,8 @@ struct POINT {
   LONG x;
   LONG y;
 };
+
+using LPPOINT = POINT*;
 
 struct RECT {
   LONG left;
@@ -103,8 +108,20 @@ union LARGE_INTEGER {
   struct {
     DWORD LowPart;
     LONG HighPart;
+  };
+
+  struct {
+    DWORD LowPart;
+    LONG HighPart;
   } u;
+
   LONGLONG QuadPart;
+};
+
+struct MEMORYSTATUS 
+{
+  DWORD  dwLength;
+  SIZE_T dwTotalPhys;
 };
 
 struct SECURITY_ATTRIBUTES {
@@ -195,8 +212,12 @@ constexpr HRESULT DXGI_ERROR_ACCESS_DENIED                 = 0x887A002B;
 constexpr HRESULT DXGI_ERROR_NAME_ALREADY_EXISTS           = 0x887A002C;
 constexpr HRESULT DXGI_ERROR_SDK_COMPONENT_MISSING         = 0x887A002D;
 
+constexpr UINT D3DENUM_WHQL_LEVEL = 2;
+
 #define WINAPI
 #define WINUSERAPI
+
+#define RGB(r,g,b)          ((COLORREF)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
 
 #define MAKE_HRESULT(sev,fac,code) \
     ((HRESULT) (((unsigned long)(sev)<<31) | ((unsigned long)(fac)<<16) | ((unsigned long)(code))) )
