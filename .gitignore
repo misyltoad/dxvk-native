@@ -1,0 +1,17 @@
+# Build-folder where we put meson build files
+#
+# Example:
+#   meson build/
+#   ninja -C build/
+#
+build/
+
+# Ignore directx headers, because we are not allowed to redistribute them?
+#
+# Example of how to get them:
+#   brew install mingw-w64
+#     ...installing
+#   cd ~/Cellar/mingw-w64/7.0.0_2/toolchain-x86_64/x86_64-w64-mingw32/include/
+#   cp d3d*.h dxgi*.h ~/git/github/Joshua-Ashton/dxvk-native/include/native/directx/
+#
+include/native/directx/
