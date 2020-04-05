@@ -15,3 +15,4 @@ build/
 #   cp d3d*.h dxgi*.h ~/git/github/Joshua-Ashton/dxvk-native/include/native/directx/
 #
 include/native/directx/
+!include/native/directx/README.txt
