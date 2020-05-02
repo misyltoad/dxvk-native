@@ -1,0 +1,11 @@
+# Build-folder where we put meson build files
+#
+# Example:
+#   meson build/
+#   ninja -C build/
+#
+build/
+
+# Ignore directx headers, because we are not allowed to redistribute them?
+include/native/directx/*
+!include/native/directx/README.md
