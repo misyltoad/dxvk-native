@@ -386,6 +386,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DxgiAdapter::RegisterVideoMemoryBudgetChangeNotificationEvent(
           HANDLE                        hEvent,
           DWORD*                        pdwCookie) {
+  #ifndef DXVK_NATIVE
     if (!hEvent || !pdwCookie)
       return E_INVALIDARG;
 
@@ -403,6 +404,9 @@ namespace dxvk {
 
     *pdwCookie = cookie;
     return S_OK;
+  #else
+    return E_NOTIMPL;
+  #endif
   }
   
 
@@ -430,6 +434,7 @@ namespace dxvk {
 
 
   void DxgiAdapter::runEventThread() {
+#ifndef DXVK_NATIVE
     env::setThreadName(str::format("dxvk-adapter-", m_index));
 
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -456,7 +461,7 @@ namespace dxvk {
         for (const auto& pair : m_eventMap)
           SetEvent(pair.second);
       }
-    }
+#endif
   }
   
 }

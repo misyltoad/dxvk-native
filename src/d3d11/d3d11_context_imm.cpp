@@ -649,6 +649,7 @@ namespace dxvk {
 
 
   void D3D11ImmediateContext::SignalEvent(HANDLE hEvent) {
+#ifndef DXVK_NATIVE
     uint64_t value = ++m_eventCount;
 
     if (m_eventSignal == nullptr)
@@ -662,6 +663,7 @@ namespace dxvk {
     ] (DxvkContext* ctx) {
       ctx->signal(cSignal, cValue);
     });
+#endif
   }
   
 }
