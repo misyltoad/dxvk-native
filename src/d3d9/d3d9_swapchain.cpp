@@ -1419,29 +1419,7 @@ namespace dxvk {
     // also required. Doing it will allow us to create fullscreen windows
     // regardless of their style and it also appears to work on Windows.
     HookWindowProc(m_window, this);
-
-    D3D9WindowMessageFilter filter(m_window);
-    
-    // Change the window flags to remove the decoration etc.
-    LONG style   = ::GetWindowLongW(m_window, GWL_STYLE);
-    LONG exstyle = ::GetWindowLongW(m_window, GWL_EXSTYLE);
-    
-    m_windowState.style = style;
-    m_windowState.exstyle = exstyle;
-    
-    style   &= ~WS_OVERLAPPEDWINDOW;
-    exstyle &= ~WS_EX_OVERLAPPEDWINDOW;
-    
-    ::SetWindowLongW(m_window, GWL_STYLE, style);
-    ::SetWindowLongW(m_window, GWL_EXSTYLE, exstyle);
-    
-    // Move the window so that it covers the entire output    
-    RECT rect;
-    GetMonitorRect(GetDefaultMonitor(), &rect);
-    
-    ::SetWindowPos(m_window, HWND_TOPMOST,
-      rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-      SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+#endif
     
     m_monitor = GetDefaultMonitor();
 
