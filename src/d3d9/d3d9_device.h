@@ -22,6 +22,7 @@
 #include "d3d9_sampler.h"
 #include "d3d9_fixed_function.h"
 #include "d3d9_swvp_emu.h"
+#include "d3d9_config.h"
 
 #include "d3d9_shader_permutations.h"
 
@@ -945,6 +946,9 @@ namespace dxvk {
     }
 
     bool CanSWVP() {
+      if (!config::SWVPEnabled)
+        return false;
+
       return m_behaviorFlags & (D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
     }
 
