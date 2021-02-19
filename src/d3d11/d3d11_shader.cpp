@@ -27,8 +27,13 @@ namespace dxvk {
     const std::string dumpPath = env::getEnvVar("DXVK_SHADER_DUMP_PATH");
     
     if (dumpPath.size() != 0) {
+#ifdef _WIN32
       reader.store(std::ofstream(str::tows(str::format(dumpPath, "/", name, ".dxbc").c_str()).c_str(),
         std::ios_base::binary | std::ios_base::trunc));
+#else
+      reader.store(std::ofstream(str::format(dumpPath, "/", name, ".dxbc").c_str(),
+        std::ios_base::binary | std::ios_base::trunc));
+#endif
     }
     
     // Decide whether we need to create a pass-through
@@ -46,9 +51,15 @@ namespace dxvk {
     m_shader->setShaderKey(*pShaderKey);
     
     if (dumpPath.size() != 0) {
+#ifdef _WIN32
       std::ofstream dumpStream(
         str::tows(str::format(dumpPath, "/", name, ".spv").c_str()).c_str(),
         std::ios_base::binary | std::ios_base::trunc);
+#else
+      std::ofstream dumpStream(
+        str::format(dumpPath, "/", name, ".spv").c_str(),
+        std::ios_base::binary | std::ios_base::trunc);
+#endif
       
       m_shader->dump(dumpStream);
     }

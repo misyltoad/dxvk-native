@@ -1,5 +1,6 @@
 #include "sync_recursive.h"
 #include "sync_spinlock.h"
+#include "../thread.h"
 
 namespace dxvk::sync {
 
@@ -17,7 +18,7 @@ namespace dxvk::sync {
 
 
   bool RecursiveSpinlock::try_lock() {
-    uint32_t threadId = GetCurrentThreadId();
+    uint32_t threadId = dxvk::this_thread::get_id();
     uint32_t expected = 0;
 
     bool status = m_owner.compare_exchange_weak(

@@ -3,8 +3,13 @@
 #include "../util/rc/util_rc.h"
 #include "../util/rc/util_rc_ptr.h"
 
+#ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR 1
+#endif
 #include <vulkan/vulkan.h>
+#ifdef DXVK_NATIVE
+#include <vulkan/vulkan_native.h>
+#endif
 
 #define VULKAN_FN(name) \
   ::PFN_ ## name name = reinterpret_cast<::PFN_ ## name>(sym(#name))

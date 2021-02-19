@@ -4412,7 +4412,7 @@ namespace dxvk {
   
   
   template<VkPipelineBindPoint BindPoint>
-  void DxvkContext::updateShaderDescriptorSetBinding(
+  __attribute__((always_inline)) void DxvkContext::updateShaderDescriptorSetBinding(
           VkDescriptorSet         set,
     const DxvkPipelineLayout*     layout) {
     if (set) {

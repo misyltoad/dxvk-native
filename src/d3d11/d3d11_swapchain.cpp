@@ -177,6 +177,7 @@ namespace dxvk {
     if (MaxLatency == 0 || MaxLatency > DXGI_MAX_SWAP_CHAIN_BUFFERS)
       return DXGI_ERROR_INVALID_CALL;
 
+#ifdef _WIN32
     if (m_frameLatencyEvent) {
       // Windows DXGI does not seem to handle the case where the new maximum
       // latency is less than the current value, and some games relying on
@@ -185,6 +186,7 @@ namespace dxvk {
       if (MaxLatency > m_frameLatency)
         ReleaseSemaphore(m_frameLatencyEvent, MaxLatency - m_frameLatency, nullptr);
     }
+#endif
 
     m_frameLatency = MaxLatency;
     return S_OK;
@@ -376,8 +378,13 @@ namespace dxvk {
   void D3D11SwapChain::CreateFrameLatencyEvent() {
     m_frameLatencySignal = new sync::CallbackFence(m_frameId);
 
-    if (m_desc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
-      m_frameLatencyEvent = CreateSemaphore(nullptr, m_frameLatency, DXGI_MAX_SWAP_CHAIN_BUFFERS, nullptr);
+    if (m_desc.Flags & DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) {
+#ifndef DXVK_NATIVE
+      m_frameLatencyEvent = CreateEvent(nullptr, false, true, nullptr);
+#else
+      throw DxvkError("DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT not supported on this platform.");
+#endif
+    }
   }
 
 
@@ -556,7 +563,9 @@ namespace dxvk {
 
 
   void D3D11SwapChain::DestroyFrameLatencyEvent() {
+#ifndef DXVK_NATIVE
     CloseHandle(m_frameLatencyEvent);
+#endif
   }
 
 
@@ -564,11 +573,13 @@ namespace dxvk {
     // Wait for the sync event so that we respect the maximum frame latency
     m_frameLatencySignal->wait(m_frameId - GetActualFrameLatency());
 
+#ifndef DXVK_NATIVE
     if (m_frameLatencyEvent) {
       m_frameLatencySignal->setCallback(m_frameId, [cFrameLatencyEvent = m_frameLatencyEvent] () {
         ReleaseSemaphore(cFrameLatencyEvent, 1, nullptr);
       });
     }
+#endif
   }
 
 

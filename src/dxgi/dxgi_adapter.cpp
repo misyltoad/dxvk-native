@@ -10,6 +10,7 @@
 #include "dxgi_options.h"
 #include "dxgi_output.h"
 
+#include "../wsi/wsi_monitor.h"
 #include "../util/util_luid.h"
 
 namespace dxvk {
@@ -142,19 +143,15 @@ namespace dxvk {
     
     if (ppOutput == nullptr)
       return E_INVALIDARG;
+
+    HMONITOR monitor = wsi::enumMonitors(Output);
     
-    MonitorEnumInfo info;
-    info.iMonitorId = Output;
-    info.oMonitor   = nullptr;
-    
-    ::EnumDisplayMonitors(
-      nullptr, nullptr, &MonitorEnumProc,
-      reinterpret_cast<LPARAM>(&info));
-    
-    if (info.oMonitor == nullptr)
+    if (!monitor) {
+      *ppOutput = nullptr;
       return DXGI_ERROR_NOT_FOUND;
-    
-    *ppOutput = ref(new DxgiOutput(m_factory, this, info.oMonitor));
+    }
+
+    *ppOutput = ref(new DxgiOutput(m_factory, this, monitor));
     return S_OK;
   }
   
@@ -403,6 +400,7 @@ namespace dxvk {
   HRESULT STDMETHODCALLTYPE DxgiAdapter::RegisterVideoMemoryBudgetChangeNotificationEvent(
           HANDLE                        hEvent,
           DWORD*                        pdwCookie) {
+  #ifndef DXVK_NATIVE
     if (!hEvent || !pdwCookie)
       return E_INVALIDARG;
 
@@ -420,6 +418,9 @@ namespace dxvk {
 
     *pdwCookie = cookie;
     return S_OK;
+  #else
+    return E_NOTIMPL;
+  #endif
   }
   
 
@@ -447,6 +448,7 @@ namespace dxvk {
 
 
   void DxgiAdapter::runEventThread() {
+#ifndef DXVK_NATIVE
     env::setThreadName(str::format("dxvk-adapter-", m_index));
 
     std::unique_lock<dxvk::mutex> lock(m_mutex);
@@ -474,21 +476,7 @@ namespace dxvk {
           SetEvent(pair.second);
       }
     }
-  }
-  
-  
-  BOOL CALLBACK DxgiAdapter::MonitorEnumProc(
-          HMONITOR                  hmon,
-          HDC                       hdc,
-          LPRECT                    rect,
-          LPARAM                    lp) {
-    auto data = reinterpret_cast<MonitorEnumInfo*>(lp);
-    
-    if (data->iMonitorId--)
-      return TRUE; /* continue */
-    
-    data->oMonitor = hmon;
-    return FALSE; /* stop */
+#endif
   }
   
 }

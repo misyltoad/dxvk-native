@@ -137,6 +137,7 @@ namespace dxvk {
 
 
   void FpsLimiter::initialize() {
+#ifdef _WIN32
     HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
 
     if (ntdll) {
@@ -159,7 +160,9 @@ namespace dxvk {
           m_sleepGranularity = NtTimerDuration(max);
         }
       }
-    } else {
+    } else
+#endif
+    {
       // Assume 1ms sleep granularity by default
       m_sleepGranularity = NtTimerDuration(10000);
     }

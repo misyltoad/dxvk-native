@@ -14,6 +14,8 @@ else
   dxvk_cpp_std='c++17'
 endif
 
+dxvk_native = (not meson.is_cross_build() and not dxvk_is_msvc) or get_option('dxvk_native_force')
+
 if dxvk_is_msvc
   add_project_arguments('/std:' + dxvk_cpp_std, language : 'cpp')
 endif
@@ -58,56 +60,100 @@ endif
 
 dxvk_extradep = [ ]
 
-if dxvk_is_msvc
-  wrc = find_program('rc')
+dxvk_platform = 'windows'
+dxvk_wsi      = 'win32'
+so_prefix     = 'dxvk_'
+
+if not dxvk_native
+  if dxvk_compiler.get_id() == 'msvc'
+    wrc = find_program('rc')
+  else
+    add_global_link_arguments('-static', '-static-libgcc', language: 'c')
+    add_global_link_arguments('-static', '-static-libgcc', '-static-libstdc++', language: 'cpp')
+
+    if cpu_family == 'x86_64'
+      wrc = find_program('x86_64-w64-mingw32-windres')
+    elif cpu_family == 'x86'
+      wrc = find_program('i686-w64-mingw32-windres')
+    else
+      error('Unsupported target architecture')
+    endif
+  endif
+
+  if cpu_family == 'x86'
+    if dxvk_compiler.has_link_argument('-Wl,--add-stdcall-alias')
+      add_global_link_arguments('-Wl,--add-stdcall-alias', language: 'cpp')
+    endif
+    if dxvk_compiler.has_link_argument('-Wl,--enable-stdcall-fixup')
+      add_global_link_arguments('-Wl,--enable-stdcall-fixup', language: 'cpp')
+    endif
+    if dxvk_compiler.has_argument('-msse') and dxvk_compiler.has_argument('-msse2')
+      add_project_arguments('-msse', '-msse2', language: ['c', 'cpp'])
+    endif
+    if dxvk_compiler.has_argument('-mfpmath=sse')
+      add_project_arguments('-mfpmath=sse', language: ['c', 'cpp'])
+    endif
+  endif
+
+  lib_vulkan  = dxvk_compiler.find_library('vulkan-1', dirs : dxvk_library_path)
+  lib_d3d9    = dxvk_compiler.find_library('d3d9')
+  lib_d3d11   = dxvk_compiler.find_library('d3d11')
+  lib_dxgi    = dxvk_compiler.find_library('dxgi')
+  lib_d3dcompiler_43 = dxvk_compiler.find_library('d3dcompiler_43', dirs : dxvk_library_path)
+
+  if dxvk_compiler.get_id() == 'msvc'
+    lib_d3dcompiler_47 = dxvk_compiler.find_library('d3dcompiler')
+  else
+    lib_d3dcompiler_47 = dxvk_compiler.find_library('d3dcompiler_47')
+  endif
+
+  exe_ext = ''
+  dll_ext = ''
+
+  if dxvk_is_msvc
+    res_ext = '.res'
+  else
+    res_ext = '.o'
+  endif
+
+  def_spec_ext = '.def'
 else
-  add_global_link_arguments('-static', '-static-libgcc', language: 'c')
-  add_global_link_arguments('-static', '-static-libgcc', '-static-libstdc++', language: 'cpp')
+  add_project_arguments('-DDXVK_NATIVE', language : 'cpp')
 
-  wrc = find_program('windres')
+  dxvk_wsi      = get_option('dxvk_native_wsi')
+  dxvk_platform = target_machine.system()
+
+  if cpu_family == 'x86'
+    if dxvk_compiler.has_argument('-msse') and dxvk_compiler.has_argument('-msse2')
+      add_project_arguments('-msse', '-msse2', language: 'c')
+      add_project_arguments('-msse', '-msse2', language: 'cpp')
+    endif
+    if dxvk_compiler.has_argument('-mfpmath=sse')
+      add_project_arguments('-mfpmath=sse', language: ['c', 'cpp'])
+    endif
+  endif
+
+  if dxvk_platform == 'windows'
+    dxvk_include_path = include_directories('./include', './include/native/')
+    lib_vulkan  = dxvk_compiler.find_library('vulkan-1', dirs : dxvk_library_path)
+    lib_sdl2    = dxvk_compiler.find_library('SDL2',     dirs : dxvk_library_path)
+    wrc = find_program('rc')
+  else
+    dxvk_include_path = include_directories('./include', './include/native/', './include/native/windows', './include/native/directx')
+    lib_vulkan  = dxvk_compiler.find_library('vulkan')
+    lib_sdl2    = dxvk_compiler.find_library('SDL2')
+    wrc = find_program('echo')
+    so_prefix = 'libdxvk_'
+  endif
+
+  res_ext = ''
+  exe_ext = ''
+  dll_ext = ''
+  def_spec_ext = '.def'
 endif
 
-if cpu_family == 'x86_64'
-  if dxvk_compiler.has_argument('-msse3')
-    add_project_arguments('-msse3', language: ['c', 'cpp'])
-  endif
-elif cpu_family == 'x86'
-  if dxvk_compiler.has_link_argument('-Wl,--add-stdcall-alias')
-    add_global_link_arguments('-Wl,--add-stdcall-alias', language: 'cpp')
-  endif
-  if dxvk_compiler.has_link_argument('-Wl,--enable-stdcall-fixup')
-    add_global_link_arguments('-Wl,--enable-stdcall-fixup', language: 'cpp')
-  endif
-  if dxvk_compiler.has_argument('-msse') and dxvk_compiler.has_argument('-msse2') and dxvk_compiler.has_argument('-msse3')
-    add_project_arguments('-msse', '-msse2', '-msse3', language: ['c', 'cpp'])
-  endif
-  if dxvk_compiler.has_argument('-mfpmath=sse')
-    add_project_arguments('-mfpmath=sse', language: ['c', 'cpp'])
-  endif
-endif
-
-lib_vulkan  = dxvk_compiler.find_library('vulkan-1', dirs : dxvk_library_path)
-lib_d3d9    = dxvk_compiler.find_library('d3d9')
-lib_d3d11   = dxvk_compiler.find_library('d3d11')
-lib_dxgi    = dxvk_compiler.find_library('dxgi')
-lib_d3dcompiler_43 = dxvk_compiler.find_library('d3dcompiler_43', dirs : dxvk_library_path)
-
-if dxvk_is_msvc
-  lib_d3dcompiler_47 = dxvk_compiler.find_library('d3dcompiler')
-else
-  lib_d3dcompiler_47 = dxvk_compiler.find_library('d3dcompiler_47')
-endif
-
-exe_ext = ''
-dll_ext = ''
-
-if dxvk_is_msvc
-  res_ext = '.res'
-else
-  res_ext = '.o'
-endif
-
-def_spec_ext = '.def'
+add_project_arguments('-DDXVK_WSI_'      + dxvk_wsi.to_upper(),      language : 'cpp')
+add_project_arguments('-DDXVK_PLATFORM_' + dxvk_platform.to_upper(), language : 'cpp')
 
 glsl_compiler = find_program('glslangValidator')
 glsl_args = [ '-V', '--vn', '@BASENAME@', '@INPUT@', '-o', '@OUTPUT@' ]
@@ -122,6 +168,10 @@ if dxvk_is_msvc
   wrc_generator = generator(wrc,
   output    : [ '@BASENAME@' + res_ext ],
   arguments : [ '/fo', '@OUTPUT@', '@INPUT@' ])
+elif dxvk_native
+  wrc_generator = generator(wrc,
+  output    : [ '@BASENAME@_ignored.h' ],
+  arguments : [ 'Ignoring: ', '@INPUT@' ])
 else
   wrc_generator = generator(wrc,
   output    : [ '@BASENAME@' + res_ext ],

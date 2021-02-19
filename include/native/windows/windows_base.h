@@ -62,6 +62,7 @@ template <typename T>
 constexpr GUID __uuidof_helper();
 
 #define __uuidof(T) __uuidof_helper<T>()
+#define __uuidof_var(T) __uuidof_helper<decltype(T)>()
 
 inline bool operator==(const GUID& a, const GUID& b) { return std::memcmp(&a, &b, sizeof(GUID)) == 0; }
 inline bool operator!=(const GUID& a, const GUID& b) { return std::memcmp(&a, &b, sizeof(GUID)) != 0; }
@@ -162,9 +163,16 @@ constexpr BOOL FALSE = 0;
 
 #define interface struct
 #define MIDL_INTERFACE(x) struct
-#define DEFINE_GUID(iid, a, b, c, d, e, f, g, h, i, j, k) constexpr GUID iid = {a,b,c,{d,e,f,g,h,i,j,k}};
+#define DEFINE_GUID(iid, a, b, c, d, e, f, g, h, i, j, k) \
+  constexpr GUID iid = {a,b,c,{d,e,f,g,h,i,j,k}};
 
-#define DECLARE_UUIDOF_HELPER(type, a, b, c, d, e, f, g, h, i, j, k) extern "C++" { template <> constexpr GUID __uuidof_helper<type>() { return GUID{a,b,c,{d,e,f,g,h,i,j,k}}; } }
+#define DECLARE_UUIDOF_HELPER(type, a, b, c, d, e, f, g, h, i, j, k) \
+  extern "C++" { template <> constexpr GUID __uuidof_helper<type>() { return GUID{a,b,c,{d,e,f,g,h,i,j,k}}; } } \
+  extern "C++" { template <> constexpr GUID __uuidof_helper<type*>() { return __uuidof_helper<type>(); } } \
+  extern "C++" { template <> constexpr GUID __uuidof_helper<const type*>() { return __uuidof_helper<type>(); } } \
+  extern "C++" { template <> constexpr GUID __uuidof_helper<type&>() { return __uuidof_helper<type>(); } } \
+  extern "C++" { template <> constexpr GUID __uuidof_helper<const type&>() { return __uuidof_helper<type>(); } }
+
 
 #define __CRT_UUID_DECL(type, a, b, c, d, e, f, g, h, i, j, k) DECLARE_UUIDOF_HELPER(type, a, b, c, d, e, f, g, h, i, j, k)
 
