@@ -1,6 +1,7 @@
 #include "d3d9_options.h"
 
 #include "d3d9_caps.h"
+#include "d3d9_config.h"
 
 namespace dxvk {
 
@@ -84,7 +85,7 @@ namespace dxvk {
                             0, 0);
     applyTristate(this->generalHazards, config.getOption<Tristate>("d3d9.generalHazards", Tristate::Auto));
 
-    this->d3d9FloatEmulation = true; // <-- Future Extension?
+    this->d3d9FloatEmulation = config::FloatEmulationByDefault; // <-- Future Extension?
     applyTristate(this->d3d9FloatEmulation, config.getOption<Tristate>("d3d9.floatEmulation", Tristate::Auto));
   }
 

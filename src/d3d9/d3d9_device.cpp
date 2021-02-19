@@ -2378,10 +2378,10 @@ namespace dxvk {
           UINT             PrimitiveCount) {
     D3D9DeviceLock lock = LockDevice();
 
-    if (unlikely(m_state.vertexDecl == nullptr))
+    if (unlikely(config::FullValidation && m_state.vertexDecl == nullptr))
       return D3DERR_INVALIDCALL;
 
-    if (unlikely(!PrimitiveCount))
+    if (unlikely(config::FullValidation && !PrimitiveCount))
       return S_OK;
 
     PrepareDraw(PrimitiveType);
@@ -2414,10 +2414,10 @@ namespace dxvk {
           UINT             PrimitiveCount) {
     D3D9DeviceLock lock = LockDevice();
 
-    if (unlikely(m_state.vertexDecl == nullptr))
+    if (unlikely(config::FullValidation && m_state.vertexDecl == nullptr))
       return D3DERR_INVALIDCALL;
 
-    if (unlikely(!PrimitiveCount))
+    if (unlikely(config::FullValidation && !PrimitiveCount))
       return S_OK;
 
     PrepareDraw(PrimitiveType);
@@ -2450,10 +2450,10 @@ namespace dxvk {
           UINT             VertexStreamZeroStride) {
     D3D9DeviceLock lock = LockDevice();
 
-    if (unlikely(m_state.vertexDecl == nullptr))
+    if (unlikely(config::FullValidation && m_state.vertexDecl == nullptr))
       return D3DERR_INVALIDCALL;
 
-    if (unlikely(!PrimitiveCount))
+    if (unlikely(config::FullValidation && !PrimitiveCount))
       return S_OK;
 
     PrepareDraw(PrimitiveType);
@@ -2503,10 +2503,10 @@ namespace dxvk {
           UINT             VertexStreamZeroStride) {
     D3D9DeviceLock lock = LockDevice();
 
-    if (unlikely(m_state.vertexDecl == nullptr))
+    if (unlikely(config::FullValidation && m_state.vertexDecl == nullptr))
         return D3DERR_INVALIDCALL;
 
-    if (unlikely(!PrimitiveCount))
+    if (unlikely(config::FullValidation && !PrimitiveCount))
       return S_OK;
 
     PrepareDraw(PrimitiveType);
@@ -5060,6 +5060,9 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveRTs(uint32_t index) {
+    if (!config::HazardTrackingEnabled)
+      return;
+
     const uint32_t bit = 1 << index;
 
     m_activeRTs &= ~bit;
@@ -5074,40 +5077,52 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveTextures(uint32_t index, DWORD combinedUsage) {
+    if (!config::ManagedUploadTrackingEnabled && !config::HazardTrackingEnabled && !config::MipGenTrackingEnabled)
+      return;
+
     const uint32_t bit = 1 << index;
 
-    m_activeRTTextures       &= ~bit;
-    m_activeDSTextures       &= ~bit;
+    if (config::HazardTrackingEnabled) {
+      m_activeRTTextures       &= ~bit;
+      m_activeDSTextures       &= ~bit;
+    }
     m_activeTextures         &= ~bit;
-    m_activeTexturesToUpload &= ~bit;
-    m_activeTexturesToGen    &= ~bit;
+    if (config::ManagedUploadTrackingEnabled)
+      m_activeTexturesToUpload &= ~bit;
+    if (config::MipGenTrackingEnabled)
+      m_activeTexturesToGen    &= ~bit;
 
     auto tex = GetCommonTexture(m_state.textures[index]);
     if (tex != nullptr) {
       m_activeTextures |= bit;
 
-      if (unlikely(tex->IsRenderTarget()))
+      if (unlikely(config::HazardTrackingEnabled && tex->IsRenderTarget()))
         m_activeRTTextures |= bit;
 
-      if (unlikely(tex->IsDepthStencil()))
+      if (unlikely(config::HazardTrackingEnabled && tex->IsDepthStencil()))
         m_activeDSTextures |= bit;
 
-      if (unlikely(tex->NeedsAnyUpload()))
+      if (unlikely(config::ManagedUploadTrackingEnabled && tex->NeedsAnyUpload()))
         m_activeTexturesToUpload |= bit;
 
-      if (unlikely(tex->NeedsMipGen()))
+      if (unlikely(config::MipGenTrackingEnabled && tex->NeedsMipGen()))
         m_activeTexturesToGen |= bit;
     }
 
-    if (unlikely(combinedUsage & D3DUSAGE_RENDERTARGET))
-      UpdateActiveHazardsRT(UINT32_MAX);
+    if (config::HazardTrackingEnabled) {
+      if (unlikely(combinedUsage & D3DUSAGE_RENDERTARGET))
+        UpdateActiveHazardsRT(UINT32_MAX);
 
-    if (unlikely(combinedUsage & D3DUSAGE_DEPTHSTENCIL))
-      UpdateActiveHazardsDS(bit);
+      if (unlikely(combinedUsage & D3DUSAGE_DEPTHSTENCIL))
+        UpdateActiveHazardsDS(bit);
+    }
   }
 
 
   inline void D3D9DeviceEx::UpdateActiveHazardsRT(uint32_t rtMask) {
+    if (!config::HazardTrackingEnabled)
+      return;
+
     auto masks = m_psShaderMasks;
     masks.rtMask      &= m_activeRTs & rtMask;
     masks.samplerMask &= m_activeRTTextures;
@@ -5136,6 +5151,9 @@ namespace dxvk {
 
 
   inline void D3D9DeviceEx::UpdateActiveHazardsDS(uint32_t texMask) {
+    if (!config::HazardTrackingEnabled)
+      return;
+
     m_activeHazardsDS = m_activeHazardsDS & (~texMask);
     if (m_state.depthStencil != nullptr &&
         m_state.depthStencil->GetBaseTexture() != nullptr) {
@@ -5156,6 +5174,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkRenderHazards() {
+    if (!config::HazardTrackingEnabled)
+      return;
+
     for (uint32_t rt = m_activeHazardsRT; rt; rt &= rt - 1) {
       // Guaranteed to not be nullptr...
       auto tex = m_state.renderTargets[bit::tzcnt(rt)]->GetCommonTexture();
@@ -5181,6 +5202,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::UploadManagedTextures(uint32_t mask) {
+    if (!config::ManagedUploadTrackingEnabled)
+      return;
+
     // Guaranteed to not be nullptr...
     for (uint32_t tex = mask; tex; tex &= tex - 1)
       UploadManagedTexture(GetCommonTexture(m_state.textures[bit::tzcnt(tex)]));
@@ -5205,6 +5229,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkTextureMipsDirty(D3D9CommonTexture* pResource) {
+    if (!config::MipGenTrackingEnabled)
+      return;
+
     pResource->SetNeedsMipGen(true);
     pResource->MarkAllWrittenByGPU();
 
@@ -5223,6 +5250,9 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkTextureMipsUnDirty(D3D9CommonTexture* pResource) {
+    if (!config::MipGenTrackingEnabled)
+      return;
+
     pResource->SetNeedsMipGen(false);
 
     for (uint32_t tex = m_activeTextures; tex; tex &= tex - 1) {
@@ -5237,6 +5267,8 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::MarkTextureUploaded(D3D9CommonTexture* pResource) {
+    if (!config::ManagedUploadTrackingEnabled)
+      return;
     for (uint32_t tex = m_activeTextures; tex; tex &= tex - 1) {
       // Guaranteed to not be nullptr...
       const uint32_t i = bit::tzcnt(tex);
@@ -5884,18 +5916,20 @@ namespace dxvk {
 
 
   void D3D9DeviceEx::PrepareDraw(D3DPRIMITIVETYPE PrimitiveType) {
-    if (unlikely(m_activeHazardsRT != 0)) {
-      EmitCs([](DxvkContext* ctx) {
-        ctx->emitRenderTargetReadbackBarrier();
-      });
+    if (config::HazardTrackingEnabled) {
+      if (unlikely(m_activeHazardsRT != 0)) {
+        EmitCs([](DxvkContext* ctx) {
+          ctx->emitRenderTargetReadbackBarrier();
+        });
 
-      if (m_d3d9Options.generalHazards)
-        MarkRenderHazards();
-    }
+        if (m_d3d9Options.generalHazards)
+          MarkRenderHazards();
+      }
 
-    if (unlikely((m_lastHazardsDS == 0) != (m_activeHazardsDS == 0))) {
-      m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
-      m_lastHazardsDS = m_activeHazardsDS;
+      if (unlikely((m_lastHazardsDS == 0) != (m_activeHazardsDS == 0))) {
+        m_flags.set(D3D9DeviceFlag::DirtyFramebuffer);
+        m_lastHazardsDS = m_activeHazardsDS;
+      }
     }
 
     for (uint32_t i = 0; i < caps::MaxStreams; i++) {
@@ -5906,13 +5940,17 @@ namespace dxvk {
 
     const uint32_t usedSamplerMask = m_activeTextures & (m_psShaderMasks.samplerMask | m_vsShaderMasks.samplerMask);
 
-    const uint32_t texturesToUpload = m_activeTexturesToUpload & usedSamplerMask;
-    if (unlikely(texturesToUpload != 0))
-      UploadManagedTextures(texturesToUpload);
+    if (config::ManagedUploadTrackingEnabled) {
+      const uint32_t texturesToUpload = m_activeTexturesToUpload & usedSamplerMask;
+      if (unlikely(texturesToUpload != 0))
+        UploadManagedTextures(texturesToUpload);
+    }
 
-    const uint32_t texturesToGen = m_activeTexturesToGen & usedSamplerMask;
-    if (unlikely(texturesToGen != 0))
-      GenerateTextureMips(texturesToGen);
+    if (config::MipGenTrackingEnabled) {
+      const uint32_t texturesToGen = m_activeTexturesToGen & usedSamplerMask;
+      if (unlikely(texturesToGen != 0))
+        GenerateTextureMips(texturesToGen);
+    }
 
     auto* ibo = GetCommonBuffer(m_state.indices);
     if (ibo != nullptr && ibo->NeedsUpload())
@@ -6024,7 +6062,7 @@ namespace dxvk {
     if (depthTextureMask != m_lastSamplerDepthMode)
       UpdateSamplerDepthModeSpecConstant(depthTextureMask);
 
-    if (m_flags.test(D3D9DeviceFlag::DirtySharedPixelShaderData)) {
+    if (m_flags.test(D3D9DeviceFlag::DirtySharedPixelShaderData) && config::FixedFunctionEnabled) {
       m_flags.clr(D3D9DeviceFlag::DirtySharedPixelShaderData);
 
       DxvkBufferSliceHandle slice = m_psShared->allocSlice();
@@ -6652,6 +6690,9 @@ namespace dxvk {
 
 
   bool D3D9DeviceEx::UseProgrammableVS() {
+    if (!config::FixedFunctionEnabled)
+      return true;
+
     return m_state.vertexShader != nullptr
       && m_state.vertexDecl != nullptr
       && !m_state.vertexDecl->TestFlag(D3D9VertexDeclFlag::HasPositionT);
@@ -6659,6 +6700,9 @@ namespace dxvk {
 
 
   bool D3D9DeviceEx::UseProgrammablePS() {
+    if (!config::FixedFunctionEnabled)
+      return true;
+
     return m_state.pixelShader != nullptr;
   }
 

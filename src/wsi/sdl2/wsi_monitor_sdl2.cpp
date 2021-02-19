@@ -14,12 +14,12 @@ namespace dxvk::wsi {
     return enumMonitors(0);
   }
 
+
   HMONITOR enumMonitors(uint32_t index) {
     return isDisplayValid(int32_t(index))
       ? toHmonitor(index)
       : nullptr;
   }
-
 
   bool getDisplayName(
           HMONITOR         hMonitor,
