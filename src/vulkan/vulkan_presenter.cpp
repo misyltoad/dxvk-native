@@ -1,6 +1,7 @@
 #include "vulkan_presenter.h"
 
 #include "../dxvk/dxvk_format.h"
+#include "../wsi/wsi_presenter.h"
 
 namespace dxvk::vk {
 
@@ -11,6 +12,7 @@ namespace dxvk::vk {
           PresenterDevice device,
     const PresenterDesc&  desc)
   : m_vki(vki), m_vkd(vkd), m_device(device), m_window(window) {
+#ifndef DXVK_NATIVE
     // As of Wine 5.9, winevulkan provides this extension, but does
     // not filter the pNext chain for VkSwapchainCreateInfoKHR properly
     // before passing it to the Linux sude, which breaks RenderDoc.
@@ -18,6 +20,7 @@ namespace dxvk::vk {
       Logger::warn("winevulkan detected, disabling exclusive fullscreen support");
       m_device.features.fullScreenExclusive = false;
     }
+#endif
 
     if (createSurface() != VK_SUCCESS)
       throw DxvkError("Failed to create surface");
@@ -445,18 +448,7 @@ namespace dxvk::vk {
 
 
   VkResult Presenter::createSurface() {
-    HINSTANCE instance = reinterpret_cast<HINSTANCE>(
-      GetWindowLongPtr(m_window, GWLP_HINSTANCE));
-    
-    VkWin32SurfaceCreateInfoKHR info;
-    info.sType      = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    info.pNext      = nullptr;
-    info.flags      = 0;
-    info.hinstance  = instance;
-    info.hwnd       = m_window;
-    
-    VkResult status = m_vki->vkCreateWin32SurfaceKHR(
-      m_vki->instance(), &info, nullptr, &m_surface);
+    VkResult status = wsi::createSurface(m_window, m_vki, &m_surface);
     
     if (status != VK_SUCCESS)
       return status;

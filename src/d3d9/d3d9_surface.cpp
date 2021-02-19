@@ -135,6 +135,7 @@ namespace dxvk {
   }
 
   HRESULT STDMETHODCALLTYPE D3D9Surface::GetDC(HDC *phDC) {
+#ifndef DXVK_NATIVE
     if (phDC == nullptr)
       return D3DERR_INVALIDCALL;
 
@@ -168,9 +169,17 @@ namespace dxvk {
 
     *phDC = m_dcDesc.hDC;
     return D3D_OK;
+#else
+    if (phDC != nullptr)
+      *phDC = nullptr;
+
+    Logger::warn("D3D9Surface::GetDC: GDI interop not supported on native");
+    return D3DERR_INVALIDCALL;
+#endif
   }
 
   HRESULT STDMETHODCALLTYPE D3D9Surface::ReleaseDC(HDC hDC) {
+#ifndef DXVK_NATIVE
     if (m_dcDesc.hDC == nullptr || m_dcDesc.hDC != hDC)
       return D3DERR_INVALIDCALL;
 
@@ -181,6 +190,10 @@ namespace dxvk {
       return hr;
 
     return D3D_OK;
+#else
+    Logger::warn("D3D9Surface::ReleaseDC: GDI interop not supported on native");
+    return D3DERR_INVALIDCALL;
+#endif
   }
 
 

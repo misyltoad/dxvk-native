@@ -7,6 +7,9 @@
 #include "../dxvk/hud/dxvk_hud.h"
 
 #include "../dxvk/dxvk_swapchain_blitter.h"
+#include "../wsi/wsi_mode.h"
+#include "../wsi/wsi_window.h"
+#include "../wsi/wsi_monitor.h"
 
 #include "../util/sync/sync_signal.h"
 
@@ -85,13 +88,6 @@ namespace dxvk {
       Gamma = 1,
     };
 
-    
-    struct WindowState {
-      LONG style   = 0;
-      LONG exstyle = 0;
-      RECT rect    = { 0, 0, 0, 0 };
-    };
-
     D3DPRESENT_PARAMETERS     m_presentParams;
     D3DGAMMARAMP              m_ramp;
 
@@ -126,7 +122,7 @@ namespace dxvk {
     HWND                      m_window   = nullptr;
     HMONITOR                  m_monitor  = nullptr;
 
-    WindowState               m_windowState;
+    wsi::DxvkWindowState      m_windowState;
 
     double                    m_displayRefreshRate = 0.0;
 
@@ -180,9 +176,8 @@ namespace dxvk {
     
     HRESULT ChangeDisplayMode(
             D3DPRESENT_PARAMETERS*  pPresentParams,
-      const D3DDISPLAYMODEEX*       pFullscreenDisplayMode);
-    
-    HRESULT RestoreDisplayMode(HMONITOR hMonitor);
+      const D3DDISPLAYMODEEX*       pFullscreenDisplayMode,
+            bool                    EnteringFullscreen);
 
     bool    UpdatePresentRegion(const RECT* pSourceRect, const RECT* pDestRect);
 

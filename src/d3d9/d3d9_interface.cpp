@@ -12,6 +12,8 @@ namespace dxvk {
     : m_instance    ( new DxvkInstance() )
     , m_extended    ( bExtended ) 
     , m_d3d9Options ( nullptr, m_instance->config() ) {
+
+#ifndef DXVK_NATIVE
     // D3D9 doesn't enumerate adapters like physical adapters...
     // only as connected displays.
 
@@ -44,6 +46,7 @@ namespace dxvk {
       }
     }
     else
+#endif
     {
       const uint32_t adapterCount = m_instance->adapterCount();
       m_adapters.reserve(adapterCount);
@@ -52,10 +55,12 @@ namespace dxvk {
         m_adapters.emplace_back(this, m_instance->enumAdapters(i), i, 0);
     }
 
+#ifndef DXVK_NATIVE
     if (m_d3d9Options.dpiAware) {
       Logger::info("Process set as DPI aware");
       SetProcessDPIAware();
     }
+#endif
   }
 
 

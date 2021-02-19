@@ -181,7 +181,11 @@ namespace dxvk {
 
     void writerFunc();
 
+#ifdef _WIN32
     std::wstring getCacheFileName() const;
+#else
+    std::string getCacheFileName() const;
+#endif
     
     std::string getCacheDir() const;
 
