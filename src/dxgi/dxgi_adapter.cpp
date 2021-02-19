@@ -465,19 +465,4 @@ namespace dxvk {
 #endif
   }
   
-  
-  BOOL CALLBACK DxgiAdapter::MonitorEnumProc(
-          HMONITOR                  hmon,
-          HDC                       hdc,
-          LPRECT                    rect,
-          LPARAM                    lp) {
-    auto data = reinterpret_cast<MonitorEnumInfo*>(lp);
-    
-    if (data->iMonitorId--)
-      return TRUE; /* continue */
-    
-    data->oMonitor = hmon;
-    return FALSE; /* stop */
-  }
-  
 }

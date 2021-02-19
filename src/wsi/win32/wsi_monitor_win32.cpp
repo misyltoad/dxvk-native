@@ -6,12 +6,35 @@
 
 namespace dxvk::wsi {
 
-  HMONITOR enumMonitors(uint32_t index) {
-    // TODO: Multi monitor support.
-    if (index > 0)
-      return nullptr;
+  struct MonitorEnumInfo {
+    UINT      iMonitorId;
+    HMONITOR  oMonitor;
+  };
 
-    return ::MonitorFromPoint({ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
+  static BOOL CALLBACK MonitorEnumProc(
+          HMONITOR                  hmon,
+          HDC                       hdc,
+          LPRECT                    rect,
+          LPARAM                    lp) {
+    auto data = reinterpret_cast<MonitorEnumInfo*>(lp);
+
+    if (data->iMonitorId--)
+      return TRUE; /* continue */
+
+    data->oMonitor = hmon;
+    return FALSE; /* stop */
+  }
+
+  HMONITOR enumMonitors(uint32_t index) {
+    MonitorEnumInfo info;
+    info.iMonitorId = Output;
+    info.oMonitor   = nullptr;
+
+    ::EnumDisplayMonitors(
+      nullptr, nullptr, &MonitorEnumProc,
+      reinterpret_cast<LPARAM>(&info));
+
+    return info.oMonitor;
   }
 
 
