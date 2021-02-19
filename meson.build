@@ -7,10 +7,8 @@ add_project_arguments('-DNOMINMAX', language : 'cpp')
 dxvk_compiler = meson.get_compiler('cpp')
 dxvk_msvc=dxvk_compiler.get_id() == 'msvc'
 # c++17 was added in 15.3, older version needs c++latest
-if dxvk_compiler.get_id() == 'msvc' and dxvk_compiler.version().version_compare('<15.3')
+if dxvk_compiler.get_id() == 'msvc'
   dxvk_cpp_std='c++latest'
-else
-  dxvk_cpp_std='c++17'
 endif
 
 dxvk_native = (not meson.is_cross_build() and not dxvk_msvc) or get_option('dxvk_native_force')
