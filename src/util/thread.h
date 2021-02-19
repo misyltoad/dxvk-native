@@ -9,8 +9,13 @@
 #include "./rc/util_rc.h"
 #include "./rc/util_rc_ptr.h"
 
+#ifndef _WIN32
+#include <thread>
+#endif
+
 namespace dxvk {
 
+#ifdef _WIN32
   /**
    * \brief Thread priority
    */
@@ -138,10 +143,28 @@ namespace dxvk {
 
   };
 
-
   namespace this_thread {
     inline void yield() {
       SwitchToThread();
     }
+
+    inline uint32_t get_id() {
+      return GetCurrentThreadId();
+    }
   }
+
+#else
+
+  using thread = std::thread;
+
+  namespace this_thread {
+    inline void yield() {
+      std::this_thread::yield();
+    }
+
+    uint32_t get_id();
+  }
+
+#endif
+
 }

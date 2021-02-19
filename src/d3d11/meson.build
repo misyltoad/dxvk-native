@@ -36,7 +36,6 @@ d3d11_src = [
   'd3d11_depth_stencil.cpp',
   'd3d11_device.cpp',
   'd3d11_enums.cpp',
-  'd3d11_gdi.cpp',
   'd3d11_initializer.cpp',
   'd3d11_input_layout.cpp',
   'd3d11_interop.cpp',
@@ -58,12 +57,22 @@ d3d11_src = [
   'd3d11_view_uav.cpp',
 ]
 
-d3d11_dll = shared_library('d3d11'+dll_ext, dxgi_common_src + d3d11_src + d3d10_src, d3d11_res,
+if not dxvk_native
+  # We don't want to allow GDI interop on *any* native builds
+  # because the idea is for you to write once and run anywhere.
+  d3d11_src += 'd3d11_gdi.cpp'
+endif
+
+if dxvk_native
+  lib_dxgi = dxgi_dep
+endif
+
+d3d11_dll = shared_library(so_prefix+'d3d11'+dll_ext, dxgi_common_src + d3d11_src + d3d10_src, d3d11_res,
   name_prefix         : '',
-  dependencies        : [ lib_dxgi, dxbc_dep, dxvk_dep ],
+  dependencies        : [ lib_dxgi, dxbc_dep, dxvk_dep, wsi_dep ],
   include_directories : dxvk_include_path,
   install             : true,
-  objects             : not dxvk_msvc ? 'd3d11'+def_spec_ext : [],
+  objects             : not dxvk_msvc and not dxvk_native ? 'd3d11'+def_spec_ext : [],
   vs_module_defs      : 'd3d11'+def_spec_ext,
   override_options    : ['cpp_std='+dxvk_cpp_std])
 

@@ -2,7 +2,9 @@
 
 #include "../util/util_time.h"
 
+#ifndef DXVK_NATIVE
 #include "../util/sync/sync_signal_win32.h"
+#endif
 
 #include "d3d11_context.h"
 #include "d3d11_state_object.h"
@@ -112,7 +114,11 @@ namespace dxvk {
     DxvkCsThread m_csThread;
     bool         m_csIsBusy = false;
 
+    std::atomic<uint32_t> m_refCount = { 0 };
+
+#ifndef DXVK_NATIVE
     Rc<sync::Win32Fence> m_eventSignal;
+#endif
     uint64_t             m_eventCount = 0;
 
     dxvk::high_resolution_clock::time_point m_lastFlush
