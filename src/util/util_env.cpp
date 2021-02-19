@@ -10,6 +10,12 @@ namespace dxvk::env {
 
 
   std::string getEnvVar(const char* name) {
+#ifdef DXVK_NATIVE
+    char* result = std::getenv(name);
+    return (result)
+      ? result
+      : "";
+#else
     std::vector<WCHAR> result;
     result.resize(MAX_PATH + 1);
 
@@ -17,6 +23,7 @@ namespace dxvk::env {
     result.resize(len);
 
     return str::fromws(result.data());
+#endif
   }
   
   

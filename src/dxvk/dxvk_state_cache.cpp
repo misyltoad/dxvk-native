@@ -967,8 +967,11 @@ namespace dxvk {
     }
   }
 
-
+#ifdef _WIN32
   std::wstring DxvkStateCache::getCacheFileName() const {
+#else
+  std::string DxvkStateCache::getCacheFileName() const {
+#endif
     std::string path = getCacheDir();
 
     if (!path.empty() && *path.rbegin() != '/')
@@ -981,7 +984,12 @@ namespace dxvk {
       exeName.erase(extp);
     
     path += exeName + ".dxvk-cache";
+
+#ifdef _WIN32
     return str::tows(path.c_str());
+#else
+    return path;
+#endif
   }
 
 

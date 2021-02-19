@@ -9,6 +9,8 @@ dxvk_msvc=dxvk_compiler.get_id() == 'msvc'
 # c++17 was added in 15.3, older version needs c++latest
 if dxvk_compiler.get_id() == 'msvc'
   dxvk_cpp_std='c++latest'
+else
+  dxvk_cpp_std='c++17'
 endif
 
 dxvk_native = (not meson.is_cross_build() and not dxvk_msvc) or get_option('dxvk_native_force')
@@ -69,6 +71,10 @@ if not dxvk_native
     if dxvk_compiler.has_link_argument('-Wl,--enable-stdcall-fixup')
       add_global_link_arguments('-Wl,--enable-stdcall-fixup', language: 'cpp')
     endif
+    if dxvk_compiler.has_argument('-msse') and dxvk_compiler.has_argument('-msse2')
+      add_project_arguments('-msse', '-msse2', language: 'c')
+      add_project_arguments('-msse', '-msse2', language: 'cpp')
+    endif
   endif
 
   lib_vulkan  = dxvk_compiler.find_library('vulkan-1', dirs : dxvk_library_path)
@@ -82,11 +88,6 @@ if not dxvk_native
   else
     lib_d3dcompiler_47 = dxvk_compiler.find_library('d3dcompiler_47')
   endif
-  if dxvk_compiler.has_argument('-msse') and dxvk_compiler.has_argument('-msse2')
-    add_project_arguments('-msse', '-msse2', language: 'c')
-    add_project_arguments('-msse', '-msse2', language: 'cpp')
-  endif
-endif
 
   exe_ext = ''
   dll_ext = ''

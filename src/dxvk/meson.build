@@ -80,8 +80,6 @@ dxvk_src = [
   'dxvk_meta_mipgen.cpp',
   'dxvk_meta_pack.cpp',
   'dxvk_meta_resolve.cpp',
-  'dxvk_openvr.cpp',
-  'dxvk_openxr.cpp',
   'dxvk_options.cpp',
   'dxvk_pipecache.cpp',
   'dxvk_pipelayout.cpp',
@@ -108,6 +106,7 @@ dxvk_src = [
 
 dxvk_src_win32 = [
   'dxvk_openvr.cpp',
+  'dxvk_openxr.cpp',
   'platform/dxvk_win32_exts.cpp'
 ]
 
