@@ -1,77 +1,70 @@
-# DXVK
+# DXVK Native
 
-A Vulkan-based translation layer for Direct3D 9/10/11 which allows running 3D applications on Linux using Wine.
+DXVK Native is a port of [DXVK](https://github.com/doitsujin/dxvk) to Linux which allows it to be used natively without Wine.
 
-For the current status of the project, please refer to the [project wiki](https://github.com/doitsujin/dxvk/wiki).
+This is primarily useful for game and application ports to either avoid having to write another rendering backend, or to help with port bringup during development.
 
-The most recent development builds can be found [here](https://github.com/doitsujin/dxvk/actions/workflows/artifacts.yml?query=branch%3Amaster).
+[Release builds](https://github.com/Joshua-Ashton/dxvk-native/releases) are built using the Steam Runtime.
 
-Release builds can be found [here](https://github.com/doitsujin/dxvk/releases).
+### How does it work?
 
-## How to use
-In order to install a DXVK package obtained from the [release](https://github.com/doitsujin/dxvk/releases) page into a given wine prefix, run the following commands from within the DXVK directory:
+DXVK Native replaces certain Windows-isms with a platform and framework-agnostic replacement, for example, `HWND`s can become `SDL_Window*`s, etc.
+All it takes to do that is to add another WSI backend.
 
-```
-export WINEPREFIX=/path/to/.wine-prefix
-./setup_dxvk.sh install
-```
+DXVK Native comes with a slim set of Windows header definitions required for D3D9/11 and the MinGW headers for D3D9/11.
+In most cases, it will end up being plug and play with your renderer, but there may be certain teething issues such as:
+- `__uuidof(type)` is supported, but `__uuidof(variable)` is not supported. Use `__uuidof_var(variable)` instead.
 
-This will **copy** the DLLs into the `system32` and `syswow64` directories of your wine prefix and set up the required DLL overrides. Pure 32-bit prefixes are also supported.
+DXVK Native also has some performance tweaks for D3D9, disabling float emulation and some validation.
+This is configurable in `d3d9_config.h`.
 
-The setup script optionally takes the following arguments:
-- `--symlink`: Create symbolic links to the DLL files instead of copying them. This is especially useful for development.
-- `--with-d3d10`: Install the `d3d10{_1}.dll` helper libraries.
-- `--without-dxgi`: Do not install DXVK's DXGI implementation and use the one provided by wine instead.
+## Games/Projects Using DXVK Native
 
-Verify that your application uses DXVK instead of wined3d by checking for the presence of the log file `d3d9.log` or `d3d11.log` in the application's directory, or by enabling the HUD (see notes below).
-
-In order to remove DXVK from a prefix, run the following command:
-```
-export WINEPREFIX=/path/to/.wine-prefix
-./setup_dxvk.sh uninstall
-```
+ - [Portal 2](https://store.steampowered.com/app/620/Portal_2/) (Valve - Windows & Linux)
+ - [Left 4 Dead 2](https://store.steampowered.com/app/550/Left_4_Dead_2/) (Valve - Windows & Linux)
+ - [Ys VIII, Ys IX](https://stadia.google.com/games) (PH3 Games - Stadia)
+ - [Perimeter](https://github.com/KranX/Perimeter) (Linux)
+ - [Momentum Mod](https://momentum-mod.org/) (Linux)
+ - [Portal 2: Community Edition](https://store.steampowered.com/app/440000/Portal_2_Community_Edition/) (Linux)
 
 ## Build instructions
 
 ### Requirements:
-- [wine 3.10](https://www.winehq.org/) or newer
+- A C++17 compiler (eg. GCC, Clang, MSVC)
 - [Meson](https://mesonbuild.com/) build system (at least version 0.46)
-- [Mingw-w64](https://www.mingw-w64.org) compiler and headers (at least version 8.0)
 - [glslang](https://github.com/KhronosGroup/glslang) compiler
 
-### Building DLLs
 
-#### The simple way
-Inside the DXVK directory, run:
-```
-./package-release.sh master /your/target/directory --no-package
-```
+### Steam Runtime
 
-This will create a folder `dxvk-master` in `/your/target/directory`, which contains both 32-bit and 64-bit versions of DXVK, which can be set up in the same way as the release versions as noted above.
+DXVK Native can be built in the Steam Runtime using `docker`.
+If you don't care about this, simply skip this section.
 
-In order to preserve the build directories for development, pass `--dev-build` to the script. This option implies `--no-package`. After making changes to the source code, you can then do the following to rebuild DXVK:
-```
-# change to build.32 for 32-bit
-cd /your/target/directory/build.64
-ninja install
-```
+To build in a Steam Runtime docker, simply `cd` to the DXVK directory and run:
 
-#### Compiling manually
+for 32-bit:
+`docker run -e USER=$USER -e USERID=$UID -it --rm -v $(pwd):/dxvk-native registry.gitlab.steamos.cloud/steamrt/scout/sdk/i386 /bin/bash`
+
+for 64-bit:
+`docker run -e USER=$USER -e USERID=$UID -it --rm -v $(pwd):/dxvk-native registry.gitlab.steamos.cloud/steamrt/scout/sdk /bin/bash`
+
+### Building the library
+
+Inside the DXVK directory, run either:
+
+On your host machine:
 ```
-# 64-bit build. For 32-bit builds, replace
-# build-win64.txt with build-win32.txt
-meson --cross-file build-win64.txt --buildtype release --prefix /your/dxvk/directory build.w64
-cd build.w64
-ninja install
+./package-native.sh master /your/target/directory --no-package
 ```
 
-The D3D9, D3D10, D3D11 and DXGI DLLs will be located in `/your/dxvk/directory/bin`. Setup has to be done manually in this case.
+With Steam Runtime:
+```
+./package-native-steamrt.sh master /your/target/directory --no-package
+```
 
-### Notes on Vulkan drivers
-Before reporting an issue, please check the [Wiki](https://github.com/doitsujin/dxvk/wiki/Driver-support) page on the current driver status and make sure you run a recent enough driver version for your hardware.
+This will create a folder dxvk-native-master in /your/target/directory which will contain a the libraries and tests.
 
-### Online multi-player games
-Manipulation of Direct3D libraries in multi-player games may be considered cheating and can get your account **banned**. This may also apply to single-player games with an embedded or dedicated multiplayer portion. **Use at your own risk.**
+In order to preserve the build directories and symbols for development, pass `--dev-build` to the script.
 
 ### HUD
 The `DXVK_HUD` environment variable controls a HUD which can display the framerate and some stat counters. It accepts a comma-separated list of the following options:
@@ -114,19 +107,3 @@ The following environment variables can be used for **debugging** purposes.
 - `DXVK_LOG_PATH=/some/directory` Changes path where log files are stored. Set to `none` to disable log file creation entirely, without disabling logging.
 - `DXVK_CONFIG_FILE=/xxx/dxvk.conf` Sets path to the configuration file.
 - `DXVK_PERF_EVENTS=1` Enables use of the VK_EXT_debug_utils extension for translating performance event markers.
-
-## Troubleshooting
-DXVK requires threading support from your mingw-w64 build environment. If you
-are missing this, you may see "error: 'mutex' is not a member of 'std'". 
-
-On Debian and Ubuntu, this can be resolved by using the posix alternate, which
-supports threading. For example, choose the posix alternate from these
-commands (use i686 for 32-bit):
-```
-update-alternatives --config x86_64-w64-mingw32-gcc
-update-alternatives --config x86_64-w64-mingw32-g++
-```
-For non debian based distros, make sure that your mingw-w64-gcc cross compiler 
-does have `--enable-threads=posix` enabled during configure. If your distro does
-ship its mingw-w64-gcc binary with `--enable-threads=win32` you might have to
-recompile locally or open a bug at your distro's bugtracker to ask for it. 
