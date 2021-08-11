@@ -22,7 +22,8 @@ This is configurable in `d3d9_config.h`.
 
  - [Portal 2](https://store.steampowered.com/app/620/Portal_2/) (Valve - Windows & Linux)
  - [Left 4 Dead 2](https://store.steampowered.com/app/550/Left_4_Dead_2/) (Valve - Windows & Linux)
- - [Ys VII](https://stadia.google.com/games) (PH3 Games - Stadia)
+ - [Ys VIII, Ys IX](https://stadia.google.com/games) (PH3 Games - Stadia)
+ - [Trails of Cold Steel 3 & 4](https://stadia.google.com/games) (PH3 Games - Stadia)
 
 ## Build instructions
 
