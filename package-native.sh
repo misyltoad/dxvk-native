@@ -45,9 +45,6 @@ while [ $# -gt 0 ]; do
 done
 
 function build_arch {
-  export CC="gcc-9"
-  export CXX="g++-9"
-  
   cd "$DXVK_SRC_DIR"
 
   opt_strip=
