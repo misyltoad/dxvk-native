@@ -24,6 +24,8 @@ This is configurable in `d3d9_config.h`.
  - [Left 4 Dead 2](https://store.steampowered.com/app/550/Left_4_Dead_2/) (Valve - Windows & Linux)
  - [Ys VIII, Ys IX](https://stadia.google.com/games) (PH3 Games - Stadia)
  - [Perimeter](https://github.com/KranX/Perimeter) (Linux)
+ - [Momentum Mod](https://momentum-mod.org/) (Linux)
+ - [Portal 2: Community Edition](https://store.steampowered.com/app/440000/Portal_2_Community_Edition/) (Linux)
 
 ## Build instructions
 
