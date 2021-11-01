@@ -147,10 +147,12 @@ else
     wrc = find_program('rc')
   else
     dxvk_include_path = include_directories('./include', './include/native/', './include/native/windows', './include/native/directx')
-    lib_vulkan  = dxvk_compiler.find_library('vulkan')
-    lib_sdl2    = dxvk_compiler.find_library('SDL2')
+    lib_sdl2    = dependency('SDL2')
+    lib_vulkan  = dependency('vulkan')
     wrc = find_program('echo')
     so_prefix = 'libdxvk_'
+    #Required to allow dxvk_sdl2_exts.cpp find SDL.h
+    dxvk_extradep += [ lib_sdl2 ]
   endif
 
   res_ext = ''

@@ -1,5 +1,5 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL.h>
+#include <SDL_vulkan.h>
 
 #include <cstring>
 #include <string>
