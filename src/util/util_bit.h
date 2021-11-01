@@ -1,5 +1,6 @@
 #pragma once
 
+#if defined(CPU_ARCH_X86)
 #ifndef _MSC_VER
 #if defined(__WINE__) && defined(__clang__)
 #pragma push_macro("_WIN32")
@@ -11,6 +12,7 @@
 #endif
 #else
 #include <intrin.h>
+#endif
 #endif
 
 #include "util_likely.h"
@@ -55,7 +57,7 @@ namespace dxvk::bit {
     return _tzcnt_u32(n);
     #elif defined(__BMI__)
     return __tzcnt_u32(n);
-    #elif defined(__GNUC__) || defined(__clang__)
+    #elif defined(CPU_ARCH_X86) && (defined(__GNUC__) || defined(__clang__))
     uint32_t res;
     uint32_t tmp;
     asm (
@@ -144,7 +146,7 @@ namespace dxvk::bit {
   template<typename T>
   bool bcmpeq(const T* a, const T* b) {
     static_assert(alignof(T) >= 16);
-    #if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+    #if defined(CPU_ARCH_X86) && (defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER))
     auto ai = reinterpret_cast<const __m128i*>(a);
     auto bi = reinterpret_cast<const __m128i*>(b);
 

@@ -52,10 +52,17 @@ endif
 
 dxvk_include_path = include_directories('./include')
 
-if (cpu_family == 'x86_64')
+if (cpu_family == 'x86_64' or cpu_family == 'aarch64')
   dxvk_library_path = meson.source_root() + '/lib'
 else
   dxvk_library_path = meson.source_root() + '/lib32'
+endif
+
+# Set define for arch type (x86/x86_64 or ARM/AArch64)
+if (cpu_family == 'x86' or cpu_family == 'x86_64')
+  add_project_arguments('-DCPU_ARCH_X86', language : ['c', 'cpp'])
+elif (cpu_family == 'arm' or cpu_family == 'aarch64')
+  add_project_arguments('-DCPU_ARCH_ARM', language : ['c', 'cpp'])
 endif
 
 dxvk_extradep = [ ]
