@@ -1,62 +1,76 @@
 #pragma once
 
+#ifdef __cplusplus
 #include <cstdint>
 #include <cstring>
+#else
+#include <stdint.h>
+#include <string.h>
+#include <wchar.h>
+#endif // __cplusplus
 
 // GCC complains about the COM interfaces
 // not having virtual destructors
 
 // and class conversion for C...DESC helper types
-#ifdef __GNUC__
+#if defined(__GNUC__) && defined(__cplusplus)
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #pragma GCC diagnostic ignored "-Wclass-conversion"
-#endif // __GNUC__
+#endif // __GNUC__ && __cplusplus
 
 struct SDL_Window;
 
-using INT     = int32_t;
-using UINT    = uint32_t;
+typedef int32_t INT;
+typedef uint32_t UINT;
 
-using LONG    = int32_t;
-using ULONG   = uint32_t;
+typedef int32_t LONG;
+typedef uint32_t ULONG;
 
-using HRESULT = int32_t;
+typedef int32_t HRESULT;
 
-using WCHAR   = wchar_t;
+typedef wchar_t WCHAR;
 
-using BOOL    = INT;
-using WINBOOL = BOOL;
+typedef INT BOOL;
+typedef BOOL WINBOOL;
 
-using UINT16  = uint16_t;
-using UINT32  = uint32_t;
-using UINT64  = uint64_t;
-using VOID    = void;
-using LPVOID  = void*;
-using LPCVOID = const void*;
+typedef uint16_t UINT16;
+typedef uint32_t UINT32;
+typedef uint64_t UINT64;
+typedef void VOID;
+typedef void* LPVOID;
+typedef const void* LPCVOID;
 
-using SIZE_T  = size_t;
+typedef size_t SIZE_T;
 
-using UINT8   = uint8_t;
-using BYTE    = uint8_t;
+typedef uint8_t UINT8;
+typedef uint8_t BYTE;
 
-using SHORT   = int16_t;
-using USHORT  = uint16_t;
+typedef int16_t SHORT;
+typedef uint16_t USHORT;
 
-using LONGLONG  = int64_t;
-using ULONGLONG = uint64_t;
+typedef int64_t LONGLONG;
+typedef uint64_t ULONGLONG;
 
-using FLOAT    = float;
+typedef float FLOAT;
 
-struct GUID {
+typedef struct GUID {
   uint32_t Data1;
   uint16_t Data2;
   uint16_t Data3;
   uint8_t  Data4[8];
-};
+} GUID;
 
-using UUID    = GUID;
-using REFIID  = const GUID&;
-using REFGUID = REFIID;
+typedef GUID UUID;
+typedef GUID IID;
+#ifdef __cplusplus
+#define REFIID const IID&
+#define REFGUID const GUID&
+#else
+#define REFIID const IID*
+#define REFGUID const GUID*
+#endif // __cplusplus
+
+#ifdef __cplusplus
 
 template <typename T>
 constexpr GUID __uuidof_helper();
@@ -67,46 +81,48 @@ constexpr GUID __uuidof_helper();
 inline bool operator==(const GUID& a, const GUID& b) { return std::memcmp(&a, &b, sizeof(GUID)) == 0; }
 inline bool operator!=(const GUID& a, const GUID& b) { return std::memcmp(&a, &b, sizeof(GUID)) != 0; }
 
-using DWORD   = uint32_t;
-using WORD    = uint16_t;
+#endif // __cplusplus
 
-using HANDLE   = void*;
-using HMONITOR = HANDLE;
-using HDC      = HANDLE;
-using HMODULE  = HANDLE;
-using HWND     = HANDLE;
-using HKEY     = HANDLE;
-using COLORREF = DWORD;
+typedef uint32_t DWORD;
+typedef uint16_t WORD;
 
-using LPSTR    = char*;
-using LPCSTR   = const char*;
-using LPCWSTR  = const wchar_t*;
+typedef void* HANDLE;
+typedef HANDLE HMONITOR;
+typedef HANDLE HDC;
+typedef HANDLE HMODULE;
+typedef HANDLE HWND;
+typedef HANDLE HKEY;
+typedef DWORD COLORREF;
 
-struct LUID {
+typedef char* LPSTR;
+typedef const char* LPCSTR;
+typedef const wchar_t* LPCWSTR;
+
+typedef struct LUID {
   DWORD LowPart;
   LONG  HighPart;
-};
+} LUID;
 
-struct POINT {
+typedef struct POINT {
   LONG x;
   LONG y;
-};
+} POINT;
 
-using LPPOINT = POINT*;
+typedef POINT* LPPOINT;
 
-struct RECT {
+typedef struct RECT {
   LONG left;
   LONG top;
   LONG right;
   LONG bottom;
-};
+} RECT;
 
-struct SIZE {
+typedef struct SIZE {
   LONG cx;
   LONG cy;
-};
+} SIZE;
 
-union LARGE_INTEGER {
+typedef union {
   struct {
     DWORD LowPart;
     LONG HighPart;
@@ -118,51 +134,54 @@ union LARGE_INTEGER {
   } u;
 
   LONGLONG QuadPart;
-};
+} LARGE_INTEGER;
 
-struct MEMORYSTATUS 
-{
+typedef struct MEMORYSTATUS {
   DWORD  dwLength;
   SIZE_T dwTotalPhys;
-};
+} MEMORYSTATUS;
 
-struct SECURITY_ATTRIBUTES {
+typedef struct SECURITY_ATTRIBUTES {
   DWORD nLength;
   void* lpSecurityDescriptor;
   BOOL  bInheritHandle;
-};
+} SECURITY_ATTRIBUTES;
 
-struct PALETTEENTRY {
+typedef struct PALETTEENTRY {
   BYTE peRed;
   BYTE peGreen;
   BYTE peBlue;
   BYTE peFlags;
-};
+} PALETTEENTRY;
 
-struct RGNDATAHEADER {
+typedef struct RGNDATAHEADER {
   DWORD dwSize;
   DWORD iType;
   DWORD nCount;
   DWORD nRgnSize;
   RECT  rcBound;
-};
+} RGNDATAHEADER;
 
-struct RGNDATA {
+typedef struct RGNDATA {
   RGNDATAHEADER rdh;
   char          Buffer[1];
-};
+} RGNDATA;
 
 // Ignore these.
 #define STDMETHODCALLTYPE
 #define __stdcall
 
 #define CONST const
+#define CONST_VTBL const
 
-constexpr BOOL TRUE  = 1;
-constexpr BOOL FALSE = 0;
+#define TRUE 1
+#define FALSE 0
 
 #define interface struct
 #define MIDL_INTERFACE(x) struct
+
+#ifdef __cplusplus
+
 #define DEFINE_GUID(iid, a, b, c, d, e, f, g, h, i, j, k) \
   constexpr GUID iid = {a,b,c,{d,e,f,g,h,i,j,k}};
 
@@ -173,55 +192,60 @@ constexpr BOOL FALSE = 0;
   extern "C++" { template <> constexpr GUID __uuidof_helper<type&>() { return __uuidof_helper<type>(); } } \
   extern "C++" { template <> constexpr GUID __uuidof_helper<const type&>() { return __uuidof_helper<type>(); } }
 
+#else
+#define DEFINE_GUID(iid, a, b, c, d, e, f, g, h, i, j, k) \
+  static const GUID iid = {a,b,c,{d,e,f,g,h,i,j,k}};
+#define DECLARE_UUIDOF_HELPER(type, a, b, c, d, e, f, g, h, i, j, k)
+#endif // __cplusplus
 
 #define __CRT_UUID_DECL(type, a, b, c, d, e, f, g, h, i, j, k) DECLARE_UUIDOF_HELPER(type, a, b, c, d, e, f, g, h, i, j, k)
 
-constexpr HRESULT S_OK     = 0;
-constexpr HRESULT S_FALSE  = 1;
+#define S_OK     0
+#define S_FALSE  1
 
-constexpr HRESULT E_INVALIDARG  = 0x80070057;
-constexpr HRESULT E_FAIL        = 0x80004005;
-constexpr HRESULT E_NOINTERFACE = 0x80004002;
-constexpr HRESULT E_NOTIMPL     = 0x80004001;
-constexpr HRESULT E_OUTOFMEMORY = 0x8007000E;
-constexpr HRESULT E_POINTER     = 0x80004003;
+#define E_INVALIDARG  ((HRESULT)0x80070057)
+#define E_FAIL        ((HRESULT)0x80004005)
+#define E_NOINTERFACE ((HRESULT)0x80004002)
+#define E_NOTIMPL     ((HRESULT)0x80004001)
+#define E_OUTOFMEMORY ((HRESULT)0x8007000E)
+#define E_POINTER     ((HRESULT)0x80004003)
 
-constexpr HRESULT DXGI_STATUS_OCCLUDED                     = 0x087a0001;
-constexpr HRESULT DXGI_STATUS_CLIPPED                      = 0x087a0002;
-constexpr HRESULT DXGI_STATUS_NO_REDIRECTION               = 0x087a0004;
-constexpr HRESULT DXGI_STATUS_NO_DESKTOP_ACCESS            = 0x087a0005;
-constexpr HRESULT DXGI_STATUS_GRAPHICS_VIDPN_SOURCE_IN_USE = 0x087a0006;
-constexpr HRESULT DXGI_STATUS_MODE_CHANGED                 = 0x087a0007;
-constexpr HRESULT DXGI_STATUS_MODE_CHANGE_IN_PROGRESS      = 0x087a0008;
-constexpr HRESULT DXGI_STATUS_UNOCCLUDED                   = 0x087a0009;
-constexpr HRESULT DXGI_STATUS_DDA_WAS_STILL_DRAWING        = 0x087a000a;
-constexpr HRESULT DXGI_STATUS_PRESENT_REQUIRED             = 0x087a002f;
+#define DXGI_STATUS_OCCLUDED                     ((HRESULT)0x087a0001)
+#define DXGI_STATUS_CLIPPED                      ((HRESULT)0x087a0002)
+#define DXGI_STATUS_NO_REDIRECTION               ((HRESULT)0x087a0004)
+#define DXGI_STATUS_NO_DESKTOP_ACCESS            ((HRESULT)0x087a0005)
+#define DXGI_STATUS_GRAPHICS_VIDPN_SOURCE_IN_USE ((HRESULT)0x087a0006)
+#define DXGI_STATUS_MODE_CHANGED                 ((HRESULT)0x087a0007)
+#define DXGI_STATUS_MODE_CHANGE_IN_PROGRESS      ((HRESULT)0x087a0008)
+#define DXGI_STATUS_UNOCCLUDED                   ((HRESULT)0x087a0009)
+#define DXGI_STATUS_DDA_WAS_STILL_DRAWING        ((HRESULT)0x087a000a)
+#define DXGI_STATUS_PRESENT_REQUIRED             ((HRESULT)0x087a002f)
 
-constexpr HRESULT DXGI_ERROR_INVALID_CALL                  = 0x887A0001;
-constexpr HRESULT DXGI_ERROR_NOT_FOUND                     = 0x887A0002;
-constexpr HRESULT DXGI_ERROR_MORE_DATA                     = 0x887A0003;
-constexpr HRESULT DXGI_ERROR_UNSUPPORTED                   = 0x887A0004;
-constexpr HRESULT DXGI_ERROR_DEVICE_REMOVED                = 0x887A0005;
-constexpr HRESULT DXGI_ERROR_DEVICE_HUNG                   = 0x887A0006;
-constexpr HRESULT DXGI_ERROR_DEVICE_RESET                  = 0x887A0007;
-constexpr HRESULT DXGI_ERROR_WAS_STILL_DRAWING             = 0x887A000A;
-constexpr HRESULT DXGI_ERROR_FRAME_STATISTICS_DISJOINT     = 0x887A000B;
-constexpr HRESULT DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE  = 0x887A000C;
-constexpr HRESULT DXGI_ERROR_DRIVER_INTERNAL_ERROR         = 0x887A0020;
-constexpr HRESULT DXGI_ERROR_NONEXCLUSIVE                  = 0x887A0021;
-constexpr HRESULT DXGI_ERROR_NOT_CURRENTLY_AVAILABLE       = 0x887A0022;
-constexpr HRESULT DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED    = 0x887A0023;
-constexpr HRESULT DXGI_ERROR_REMOTE_OUTOFMEMORY            = 0x887A0024;
-constexpr HRESULT DXGI_ERROR_ACCESS_LOST                   = 0x887A0026;
-constexpr HRESULT DXGI_ERROR_WAIT_TIMEOUT                  = 0x887A0027;
-constexpr HRESULT DXGI_ERROR_SESSION_DISCONNECTED          = 0x887A0028;
-constexpr HRESULT DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE      = 0x887A0029;
-constexpr HRESULT DXGI_ERROR_CANNOT_PROTECT_CONTENT        = 0x887A002A;
-constexpr HRESULT DXGI_ERROR_ACCESS_DENIED                 = 0x887A002B;
-constexpr HRESULT DXGI_ERROR_NAME_ALREADY_EXISTS           = 0x887A002C;
-constexpr HRESULT DXGI_ERROR_SDK_COMPONENT_MISSING         = 0x887A002D;
+#define DXGI_ERROR_INVALID_CALL                  ((HRESULT)0x887A0001)
+#define DXGI_ERROR_NOT_FOUND                     ((HRESULT)0x887A0002)
+#define DXGI_ERROR_MORE_DATA                     ((HRESULT)0x887A0003)
+#define DXGI_ERROR_UNSUPPORTED                   ((HRESULT)0x887A0004)
+#define DXGI_ERROR_DEVICE_REMOVED                ((HRESULT)0x887A0005)
+#define DXGI_ERROR_DEVICE_HUNG                   ((HRESULT)0x887A0006)
+#define DXGI_ERROR_DEVICE_RESET                  ((HRESULT)0x887A0007)
+#define DXGI_ERROR_WAS_STILL_DRAWING             ((HRESULT)0x887A000A)
+#define DXGI_ERROR_FRAME_STATISTICS_DISJOINT     ((HRESULT)0x887A000B)
+#define DXGI_ERROR_GRAPHICS_VIDPN_SOURCE_IN_USE  ((HRESULT)0x887A000C)
+#define DXGI_ERROR_DRIVER_INTERNAL_ERROR         ((HRESULT)0x887A0020)
+#define DXGI_ERROR_NONEXCLUSIVE                  ((HRESULT)0x887A0021)
+#define DXGI_ERROR_NOT_CURRENTLY_AVAILABLE       ((HRESULT)0x887A0022)
+#define DXGI_ERROR_REMOTE_CLIENT_DISCONNECTED    ((HRESULT)0x887A0023)
+#define DXGI_ERROR_REMOTE_OUTOFMEMORY            ((HRESULT)0x887A0024)
+#define DXGI_ERROR_ACCESS_LOST                   ((HRESULT)0x887A0026)
+#define DXGI_ERROR_WAIT_TIMEOUT                  ((HRESULT)0x887A0027)
+#define DXGI_ERROR_SESSION_DISCONNECTED          ((HRESULT)0x887A0028)
+#define DXGI_ERROR_RESTRICT_TO_OUTPUT_STALE      ((HRESULT)0x887A0029)
+#define DXGI_ERROR_CANNOT_PROTECT_CONTENT        ((HRESULT)0x887A002A)
+#define DXGI_ERROR_ACCESS_DENIED                 ((HRESULT)0x887A002B)
+#define DXGI_ERROR_NAME_ALREADY_EXISTS           ((HRESULT)0x887A002C)
+#define DXGI_ERROR_SDK_COMPONENT_MISSING         ((HRESULT)0x887A002D)
 
-constexpr UINT D3DENUM_WHQL_LEVEL = 2;
+#define D3DENUM_WHQL_LEVEL 2
 
 #define WINAPI
 #define WINUSERAPI
@@ -231,8 +255,13 @@ constexpr UINT D3DENUM_WHQL_LEVEL = 2;
 #define MAKE_HRESULT(sev,fac,code) \
     ((HRESULT) (((unsigned long)(sev)<<31) | ((unsigned long)(fac)<<16) | ((unsigned long)(code))) )
 
+#ifdef __cplusplus
 #define STDMETHOD(name) virtual HRESULT name
 #define STDMETHOD_(type, name) virtual type name
+#else
+#define STDMETHOD(name) HRESULT (STDMETHODCALLTYPE *name)
+#define STDMETHOD_(type, name) type (STDMETHODCALLTYPE *name)
+#endif // __cplusplus
 
 #define THIS_
 #define THIS
@@ -250,13 +279,27 @@ constexpr UINT D3DENUM_WHQL_LEVEL = 2;
 #define DUMMYUNIONNAME
 #define DUMMYSTRUCTNAME
 
+#ifdef __cplusplus
 #define DECLARE_INTERFACE(x)     struct x
 #define DECLARE_INTERFACE_(x, y) struct x : public y
+#else
+#define DECLARE_INTERFACE(x) \
+    typedef interface x { \
+        const struct x##Vtbl *lpVtbl; \
+    } x; \
+    typedef const struct x##Vtbl x##Vtbl; \
+    const struct x##Vtbl
+#define DECLARE_INTERFACE_(x, y) DECLARE_INTERFACE(x)
+#endif // __cplusplus
 
 #define BEGIN_INTERFACE
 #define END_INTERFACE
 
+#ifdef __cplusplus
 #define PURE = 0
+#else
+#define PURE
+#endif // __cplusplus
 
 #define DECLSPEC_SELECTANY
 
@@ -265,8 +308,5 @@ constexpr UINT D3DENUM_WHQL_LEVEL = 2;
 #define ENUM_CURRENT_SETTINGS ((DWORD)-1)
 #define ENUM_REGISTRY_SETTINGS ((DWORD)-2)
 
-template <typename T>
-inline bool FAILED(T hr) { return HRESULT(hr) < 0; }
-
-template <typename T>
-inline bool SUCCEEDED(T hr) { return !FAILED<T>(hr); }
+#define FAILED(hr) ((HRESULT)(hr) < 0)
+#define SUCCEEDED(hr) ((HRESULT)(hr) >= 0)
