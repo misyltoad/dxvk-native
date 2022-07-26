@@ -53,12 +53,15 @@ typedef uint64_t ULONGLONG;
 
 typedef float FLOAT;
 
+#ifndef GUID_DEFINED
+#define GUID_DEFINED
 typedef struct GUID {
   uint32_t Data1;
   uint16_t Data2;
   uint16_t Data3;
   uint8_t  Data4[8];
 } GUID;
+#endif // GUID_DEFINED
 
 typedef GUID UUID;
 typedef GUID IID;
