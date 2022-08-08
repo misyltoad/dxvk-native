@@ -22,11 +22,13 @@ namespace dxvk::vk {
     }
 #endif
 
-    if (createSurface() != VK_SUCCESS)
-      throw DxvkError("Failed to create surface");
+    auto result = createSurface();
+    if (result != VK_SUCCESS)
+      throw DxvkError(str::format("Failed to create surface. Result: ", result));
 
-    if (recreateSwapChain(desc) != VK_SUCCESS)
-      throw DxvkError("Failed to create swap chain");
+    result = recreateSwapChain(desc);
+    if (result != VK_SUCCESS)
+      throw DxvkError(str::format("Failed to create swap chain. Result: ", result));
   }
 
   
