@@ -122,10 +122,16 @@ dxvk_src_sdl2 = [
   'platform/dxvk_sdl2_exts.cpp'
 ]
 
+dxvk_src_glfw = [
+  'platform/dxvk_glfw_exts.cpp'
+]
+
 if dxvk_wsi == 'win32'
   dxvk_src += dxvk_src_win32
 elif dxvk_wsi == 'sdl2'
   dxvk_src += dxvk_src_sdl2
+elif dxvk_wsi == 'glfw'
+  dxvk_src += dxvk_src_glfw
 else
   error('Unknown platform for dxvk')
 endif
