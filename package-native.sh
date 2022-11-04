@@ -5,7 +5,7 @@ set -e
 shopt -s extglob
 
 if [ -z "$1" ] || [ -z "$2" ]; then
-  echo "Usage: $0 version destdir [--no-package] [--dev-build]"
+  echo "Usage: $0 version destdir [--no-package] [--dev-build] [-- MESON_OPTIONS]"
   exit 1
 fi
 
@@ -37,6 +37,10 @@ while [ $# -gt 0 ]; do
   "--build-id")
     opt_buildid=true
     ;;
+  "--")
+    shift
+    break
+    ;;
   *)
     echo "Unrecognized option: $1" >&2
     exit 1
@@ -57,6 +61,7 @@ function build_arch {
         $opt_strip                                    \
         -Denable_tests=true                           \
         -Dbuild_id=$opt_buildid                       \
+        "$@"                                          \
         "$DXVK_BUILD_DIR/build"
 
   cd "$DXVK_BUILD_DIR/build"
@@ -74,7 +79,7 @@ function package {
   rm -R "dxvk-native-$DXVK_VERSION"
 }
 
-build_arch
+build_arch "$@"
 
 if [ $opt_nopackage -eq 0 ]; then
   package
