@@ -1,6 +1,6 @@
 project('dxvk', ['c', 'cpp'], version : 'v1.9.2', meson_version : '>= 0.46')
 
-cpu_family = target_machine.cpu_family()
+cpu_family = host_machine.cpu_family()
 
 add_project_arguments('-DNOMINMAX', language : 'cpp')
 
@@ -43,7 +43,7 @@ if not dxvk_is_msvc
   endif
 
   # Wine's built-in back traces only work with dwarf2 symbols
-  if get_option('debug') and target_machine.system() == 'windows'
+  if get_option('debug') and host_machine.system() == 'windows'
     if dxvk_compiler.has_argument('-gstrict-dwarf') and dxvk_compiler.has_argument('-gdwarf-2')
       add_project_arguments('-gstrict-dwarf', '-gdwarf-2', language: ['c', 'cpp'])
     endif
@@ -121,7 +121,7 @@ else
   add_project_arguments('-DDXVK_NATIVE', language : 'cpp')
 
   dxvk_wsi      = get_option('dxvk_native_wsi')
-  dxvk_platform = target_machine.system()
+  dxvk_platform = host_machine.system()
 
   if cpu_family == 'x86'
     if dxvk_compiler.has_argument('-msse') and dxvk_compiler.has_argument('-msse2')
