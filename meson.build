@@ -14,7 +14,7 @@ else
   dxvk_cpp_std='c++17'
 endif
 
-dxvk_native = (not meson.is_cross_build() and not dxvk_is_msvc) or get_option('dxvk_native_force')
+dxvk_native = (host_machine.system() != 'windows' and not dxvk_is_msvc) or get_option('dxvk_native_force')
 
 if dxvk_is_msvc
   add_project_arguments('/std:' + dxvk_cpp_std, language : 'cpp')
